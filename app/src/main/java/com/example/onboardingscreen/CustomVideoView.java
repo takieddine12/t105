@@ -9,10 +9,10 @@ public class CustomVideoView extends VideoView {
 
     private int width;
     private int height;
-    public CustomVideoView(Context context, int width, int height) {
+    public CustomVideoView(Context context) {
         super(context);
-        this.width = width;
-        this.height = height;
+//        this.width = width;
+//        this.height = height;
         setCornerRadius(context);
 
     }
@@ -29,6 +29,7 @@ public class CustomVideoView extends VideoView {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        setSize(width,height);
         setMeasuredDimension(width, height);
     }
 
@@ -36,5 +37,10 @@ public class CustomVideoView extends VideoView {
         // Create a custom rounded background drawable
         RoundedCornerDrawable roundedCornerDrawable = new RoundedCornerDrawable(context);
         setBackground(roundedCornerDrawable);
+    }
+
+    void setSize(int width , int height){
+        this.width = width;
+        this.height = height;
     }
 }

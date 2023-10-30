@@ -1,39 +1,37 @@
 package com.example.onboardingscreen;
 
-import android.content.res.ColorStateList;
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
+
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.PixelFormat;
-import android.graphics.drawable.BitmapDrawable;
-import android.media.MediaPlayer;
-import android.media.ThumbnailUtils;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+
+import java.io.IOException;
 
 public class BoardingFragment extends Fragment {
 
+    private ImageView imageView;
     private TextView title;
     private final String pageTitle;
     private final int videoPath;
     private final int position;
-    private FrameLayout cardView;
+
 
     private CustomVideoView customVideoView;
 
@@ -53,7 +51,8 @@ public class BoardingFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_one, container, false);
         title = view.findViewById(R.id.title);
-        cardView = view.findViewById(R.id.container);
+        customVideoView = view.findViewById(R.id.customVid);
+        imageView = view.findViewById(R.id.img);
         return view;
     }
 
@@ -90,47 +89,55 @@ public class BoardingFragment extends Fragment {
         }
 
 
-        LinearLayout linearLayout = new LinearLayout(requireContext());
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        linearLayout.setLayoutParams(layoutParams);
-        linearLayout.setBackgroundColor(Color.WHITE);
-
-
         // TODO : RESIZE VIDEO TO 400 ( Width ) * 500 ( Height )  &&  500 ( Width ) * 500 ( Height )
         if(position >= 1){
-            customVideoView  = new CustomVideoView(requireContext(),mWidth,mHeight);
-            cardView.addView(customVideoView);
-            cardView.addView(linearLayout);
+            customVideoView.setSize(mWidth,mHeight);
+            setImageView(mWidth,mHeight);
         } else {
-            customVideoView  = new CustomVideoView(requireContext(),width,height);
-            cardView.addView(customVideoView);
-            cardView.addView(linearLayout);
+            customVideoView.setSize(width,height);
+            setImageView(width,height);
         }
 
-
-
+        
         // TODO : Set Video Path and start
         String path = "android.resource://" + requireContext().getPackageName() + "/" + R.raw.vid;
         customVideoView.setVideoURI(Uri.parse("android.resource://" + requireContext().getPackageName() + "/" + videoPath));
-        customVideoView.start();
+        imageView.setImageBitmap(getThumbnail(path));
+        customVideoView.seekTo(currentPosition);
+
+
+
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                linearLayout.setVisibility(View.GONE);
+                imageView.setVisibility(View.INVISIBLE);
             }
-        },500);
+        },600);
 
 
     }
 
+    private void setImageView(int mWidth, int mHeight) {
+        ViewGroup.LayoutParams layoutParams = imageView.getLayoutParams();
+        layoutParams.width = mWidth;
+        layoutParams.height = mHeight;
+        imageView.setLayoutParams(layoutParams);
+    }
+
+    private Bitmap getThumbnail(String path){
+        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+        mediaMetadataRetriever.setDataSource(requireActivity(),Uri.parse(path));
+        long duration = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+        return mediaMetadataRetriever.getFrameAtTime(duration - 1000, MediaMetadataRetriever.OPTION_CLOSEST);
+    }
 
 
     // TODO : Release VideoView if it is playing to not cause memory leak onDestroy
     @Override
     public void onResume() {
         super.onResume();
-        if (customVideoView != null) {
+        if (customVideoView != null && currentPosition >= 0) {
             customVideoView.seekTo(currentPosition);
             customVideoView.start();
         }
@@ -139,7 +146,7 @@ public class BoardingFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        if (customVideoView.isPlaying()) {
+        if (customVideoView != null && customVideoView.isPlaying()) {
             customVideoView.pause();
             currentPosition = customVideoView.getCurrentPosition();
         }
